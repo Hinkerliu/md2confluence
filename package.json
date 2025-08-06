@@ -8,11 +8,15 @@
     "build": "npm run build-html && npm run build-js",
     "build-html": "jade -p node_modules/jade-gist/. < browser/index.jade > browser/index.html",
     "build-js": "webpack browser/app.js --output-filename=browser/bundle.js",
-    "readme": "pretty-readme > readme.md"
+    "readme": "pretty-readme > readme.md",
+    "start": "node server.js",
+    "server": "node server.js",
+    "dev": "nodemon server.js"
   },
   "author": "ft",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.21.2",
     "jade": "^1.11.0",
     "jade-gist": "^1.0.3",
     "marked": "^0.3.2",
@@ -24,7 +28,6 @@
   "bin": {
     "markdown2confluence": "bin/markdown2confluence.js"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/chunpu/markdown2confluence.git"

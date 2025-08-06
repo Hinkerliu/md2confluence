@@ -15,11 +15,23 @@ function Renderer() {}
 
 var rawRenderer = marked.Renderer
 
-var langArr = 'actionscript3 bash csharp coldfusion cpp css delphi diff erlang groovy java javafx javascript perl php none powershell python ruby scala sql vb html/xml'.split(/\s+/)
+var langArr = 'actionscript3 bash csharp coldfusion cpp css delphi diff erlang groovy java javafx javascript perl php none powershell python ruby scala sql vb html xml typescript go rust swift kotlin dart yaml json'.split(/\s+/)
 var langMap = {
-	shell: 'bash', 
-	html: 'html', 
-	xml: 'xml'
+	shell: 'bash',
+	sh: 'bash',
+	html: 'html',
+	xml: 'xml',
+	ts: 'typescript',
+	js: 'javascript',
+	py: 'python',
+	rb: 'ruby',
+	c: 'cpp',
+	'c++': 'cpp',
+	rs: 'rust',
+	kt: 'kotlin',
+	go: 'go',
+	yml: 'yaml',
+	json: 'json'
 }
 for (var i = 0, x; x = langArr[i++];) {
 	langMap[x] = x
@@ -33,6 +45,10 @@ _.extend(Renderer.prototype, rawRenderer.prototype, {
 		return html
 	}
 	, heading: function(text, level, raw) {
+		// Ensure level is within valid range for Confluence (1-6)
+		level = Math.min(Math.max(parseInt(level) || 1, 1), 6)
+		// Trim whitespace and ensure proper spacing
+		text = text.trim()
 		return 'h' + level + '. ' + text + '\n\n'
 	}
 	, strong: function(text) {
@@ -48,13 +64,16 @@ _.extend(Renderer.prototype, rawRenderer.prototype, {
 		return '{{' + text + '}}'
 	}
 	, blockquote: function(quote) {
-		return '{quote}' + quote + '{quote}'
+		// Trim extra whitespace for better Confluence rendering
+		quote = quote.trim()
+		return '{quote}' + quote + '{quote}\n\n'
 	}
 	, br: function() {
 		return '\n'
 	}
 	, hr: function() {
-		return '----'
+		// 确保水平线后面有足够的换行符，避免与后续内容连接
+		return '----\n\n'
 	}
 	, link: function(href, title, text) {
 		var arr = [href]
@@ -96,17 +115,24 @@ _.extend(Renderer.prototype, rawRenderer.prototype, {
 		}
 		lang = langMap[lang] || 'none'
 		var param = {
-			language: lang,
-			borderStyle: 'solid',
-			theme: 'RDark', // dark is good
-			linenumbers: true,
-			collapse: false
+			language: lang
 		}
+		
 		var lineCount = _.split(code, '\n').length
+		
+		// Add line numbers for code blocks (always for multi-line, optional for single line)
+		param.linenumbers = true
+		
+		// Add collapse for long code blocks
 		if (lineCount > MAX_CODE_LINE) {
-			// code is too long
 			param.collapse = true
 		}
+		
+		// Use modern theme that works well in Confluence 9.2.4
+		if (lang !== 'none') {
+			param.theme = 'Confluence'
+		}
+		
 		param = qs.stringify(param, '|', '=')
 		return '{code:' + param + '}\n' + code + '\n{code}\n\n'
 	}
@@ -115,5 +141,10 @@ _.extend(Renderer.prototype, rawRenderer.prototype, {
 var renderer = new Renderer()
 
 function markdown2confluence(markdown) {
-	return marked(markdown, {renderer: renderer})
+	var result = marked(markdown, {renderer: renderer})
+	
+	// 后处理：确保水平线和标题之间有正确的分隔
+	result = result.replace(/----([^\n])/g, '----\n$1')
+	
+	return result
 }

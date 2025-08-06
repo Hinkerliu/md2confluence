@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:confluence.atlassian.com)",
+      "Bash(node:*)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(chmod +x deploy.sh)",
+      "Bash(npm install:*)",
+      "Bash(ss:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(sudo ufw:*)",
+      "Bash(sudo iptables -L)",
+      "Bash(grep:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(ls:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
