@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to Confluence - 在线转换器</title>
+    <title>Markdown to Confluence Converter</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     
     <!-- Custom CSS -->
     <style>
@@ -56,8 +58,70 @@
             border-radius: 50%;
             margin-right: 5px;
         }
-        .status-online { background-color: #28a745; }
-        .status-offline { background-color: #dc3545; }
+        .status-online { 
+            background-color: #28a745;
+        }
+        .status-offline { 
+            background-color: #dc3545;
+        }
+        
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+        
+        /* Drag and drop styles */
+        .drag-over {
+            border: 2px dashed #007bff !important;
+            background-color: #f8f9ff !important;
+        }
+        
+        /* Mobile responsive improvements */
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding: 10px;
+            }
+            
+            textarea {
+                height: 300px !important;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .btn-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .card-header {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                font-size: 0.875rem;
+                padding: 0.375rem 0.75rem;
+            }
+        }
+        
+        /* Tablet optimization */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .col-lg-6 {
+                margin-bottom: 1rem;
+            }
+            
+            textarea {
+                height: 400px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -66,15 +130,24 @@
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 mb-0">
-                        <span class="status-indicator status-online"></span>
-                        Markdown to Confluence 转换器
+                        <div class="status-indicator status-online" 
+                         aria-label="Service online" 
+                         role="img"
+                         title="Service is online"></div>
+                        Markdown to Confluence Converter
                     </h1>
                     <div class="text-muted">
-                        <small>支持 Confluence 9.2.4+ | 实时转换</small>
+                        <small>Supports Confluence 9.2.4+ | Real-time conversion</small>
                     </div>
                 </div>
                 
-                <!-- 消息提示区域 -->
+                <!-- Accessibility announcer -->
+                <div id="status-announcer" 
+                     class="sr-only" 
+                     aria-live="polite" 
+                     aria-atomic="true"></div>
+                
+                <!-- Messages area -->
                 <div id="messages"></div>
                 
                 <div class="row">
@@ -82,10 +155,10 @@
                     <div class="col-lg-6 mb-4">
                         <div class="card h-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <span>📝 Markdown 输入</span>
+                                <span><i class="bi bi-markdown me-2"></i>Markdown Input</span>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="auto-convert" checked>
-                                    <label class="form-check-label" for="auto-convert">实时转换</label>
+                                    <label class="form-check-label" for="auto-convert">Real-time conversion</label>
                                 </div>
                             </div>
                             <div class="card-body p-0">
@@ -93,15 +166,25 @@
                                     id="markdown" 
                                     class="form-control border-0" 
                                     rows="25" 
-                                    placeholder="在此输入您的 Markdown 内容..."
+                                    placeholder="Enter your Markdown content here..."
+                                    aria-label="Markdown input"
+                                    aria-describedby="markdown-help"
                                     style="resize: none; height: 600px;"></textarea>
                             </div>
                             <div class="card-footer">
                                 <div class="btn-group">
-                                    <button id="convert" class="btn btn-primary">🔄 转换</button>
-                                    <button id="clear" class="btn btn-outline-secondary">🗑️ 清除</button>
+                                    <button id="convert" class="btn btn-primary">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Convert
+                                    </button>
+                                    <button id="clear" class="btn btn-outline-secondary">
+                                        <i class="bi bi-trash me-1"></i>Clear
+                                    </button>
+                                    <button id="import" class="btn btn-outline-primary">
+                                        <i class="bi bi-upload me-1"></i>Import
+                                    </button>
+                                    <input type="file" id="file-input" accept=".md,.txt" style="display: none;">
                                 </div>
-                                <small class="text-muted ms-3">支持标题、代码块、表格、列表等</small>
+                                <small class="text-muted ms-3" id="markdown-help">Supports headers, code blocks, tables, lists, and more</small>
                             </div>
                         </div>
                     </div>
@@ -110,7 +193,7 @@
                     <div class="col-lg-6 mb-4">
                         <div class="card h-100">
                             <div class="card-header">
-                                <span>🎯 Confluence 标记语言输出</span>
+                                <span><i class="bi bi-code-square me-2"></i>Confluence Markup Output</span>
                             </div>
                             <div class="card-body p-0">
                                 <textarea 
@@ -118,15 +201,24 @@
                                     class="form-control border-0" 
                                     rows="25" 
                                     readonly
-                                    placeholder="转换后的 Confluence 标记语言将显示在这里..."
+                                    placeholder="Converted Confluence markup will appear here..."
+                                    aria-label="Confluence markup output"
+                                    aria-describedby="output-help"
                                     style="resize: none; height: 600px;"></textarea>
                             </div>
                             <div class="card-footer">
                                 <div class="btn-group">
-                                    <button id="copy" class="btn btn-success">📋 复制结果</button>
-                                    <a href="/health" target="_blank" class="btn btn-outline-info">🔍 服务状态</a>
+                                    <button id="copy" class="btn btn-success">
+                                        <i class="bi bi-clipboard me-1"></i>Copy Result
+                                    </button>
+                                    <button id="export" class="btn btn-outline-success">
+                                        <i class="bi bi-download me-1"></i>Export
+                                    </button>
+                                    <a href="/health" target="_blank" class="btn btn-outline-info">
+                                        <i class="bi bi-heart-pulse me-1"></i>Health Check
+                                    </a>
                                 </div>
-                                <small class="text-muted ms-3">可直接粘贴到 Confluence</small>
+                                <small class="text-muted ms-3" id="output-help">Ready to paste into Confluence</small>
                             </div>
                         </div>
                     </div>
@@ -137,32 +229,32 @@
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
-                                <span>✨ 支持的功能</span>
+                                <span><i class="bi bi-star me-2"></i>Supported Features</span>
                             </div>
                             <div class="card-body">
                                 <div class="row feature-list">
                                     <div class="col-md-4">
                                         <ul class="list-unstyled">
-                                            <li>✅ 标题 (h1-h6)</li>
-                                            <li>✅ 粗体/斜体</li>
-                                            <li>✅ 行内代码</li>
-                                            <li>✅ 代码块</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Headers (h1-h6)</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Bold/Italic</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Inline Code</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Code Blocks</li>
                                         </ul>
                                     </div>
                                     <div class="col-md-4">
                                         <ul class="list-unstyled">
-                                            <li>✅ 有序/无序列表</li>
-                                            <li>✅ 链接和图片</li>
-                                            <li>✅ 表格</li>
-                                            <li>✅ 引用块</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Ordered/Unordered Lists</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Links and Images</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Tables</li>
+                                            <li><i class="bi bi-check-circle text-success me-1"></i>Blockquotes</li>
                                         </ul>
                                     </div>
                                     <div class="col-md-4">
                                         <ul class="list-unstyled">
-                                            <li>🎨 20+ 编程语言</li>
-                                            <li>⚡ 实时预览</li>
-                                            <li>📱 响应式设计</li>
-                                            <li>🔒 本地处理</li>
+                                            <li><i class="bi bi-palette text-primary me-1"></i>20+ Programming Languages</li>
+                                            <li><i class="bi bi-lightning text-warning me-1"></i>Real-time Preview</li>
+                                            <li><i class="bi bi-phone text-info me-1"></i>Responsive Design</li>
+                                            <li><i class="bi bi-shield-check text-success me-1"></i>Local Processing</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -172,7 +264,7 @@
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
-                                <span>🚀 支持的语言</span>
+                                <span><i class="bi bi-code-slash me-2"></i>Supported Languages</span>
                             </div>
                             <div class="card-body feature-list">
                                 <div class="row">
@@ -189,7 +281,7 @@
                                             C++, Rust, Swift<br>
                                             Kotlin, Dart<br>
                                             PHP, Ruby<br>
-                                            ...更多语言
+                                            ...and more
                                         </small>
                                     </div>
                                 </div>
@@ -215,9 +307,8 @@
                 </div>
                 <div class="col-md-6 text-end">
                     <p class="text-muted mb-0">
-                        <small>
-                            兼容 Confluence 9.2.4+ | 
-                            服务器运行在 192.168.40.108:8092
+                        <small>Compatible with Confluence 9.2.4+ | 
+                            Server running at <span id="server-info">localhost:8092</span>
                         </small>
                     </p>
                 </div>
